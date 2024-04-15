@@ -47,7 +47,6 @@ jobs:
 
           - name: Build Signed APK
             run: |
-              cd android
               chmod +x ./gradlew
               ./gradlew assembleRelease \
                 --build-cache \
