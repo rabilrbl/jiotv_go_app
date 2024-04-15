@@ -50,7 +50,7 @@ jobs:
               chmod +x ./gradlew
               ./gradlew assembleRelease \
                 --build-cache \
-                -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/app/jiotvgo.jks \
+                -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/jiotvgo.jks \
                 -Pandroid.injected.signing.store.password="${{ secrets.STORE_PASSWORD }}" \
                 -Pandroid.injected.signing.key.alias="key0" \
                 -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
