@@ -39,10 +39,10 @@ jobs:
               fi
               echo "tag=$tag" >> $GITHUB_OUTPUT
     
-          - name: Bump version in app.json
+          - name: Bump version
             run: |
               tag=${{ steps.tag.outputs.tag }}
-              # change version in app.json
+              # change version
               sed -i "s/ versionName = \".*\"/versionName = \"${tag:1}\"/g" app/build.gradle.kts
 
           - name: Build Signed APK
