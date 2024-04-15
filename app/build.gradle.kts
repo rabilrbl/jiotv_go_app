@@ -22,7 +22,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -47,6 +47,29 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    splits {
+
+        // Configures multiple APKs based on ABI.
+        abi {
+
+        // Enables building multiple APKs per ABI.
+        enable true
+
+        // By default all ABIs are included, so use reset() and include to specify that you only
+        // want APKs for x86 and x86_64.
+
+        // Resets the list of ABIs for Gradle to create APKs for to none.
+        reset()
+
+        // Specifies a list of ABIs for Gradle to create APKs for.
+        include "x86", "x86_64", "armeabi-v7a", "arm64-v8a"
+
+        // Specifies that you don't want to also generate a universal APK that includes all ABIs.
+        universalApk true
+        }
+    }
+
 }
 
 dependencies {
@@ -60,7 +83,6 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.okhttp)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

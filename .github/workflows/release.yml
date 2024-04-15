@@ -1,0 +1,93 @@
+name: Build and Release
+
+on:
+    push:
+        branches:
+        - main
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        outputs:
+          tag: ${{ steps.tag.outputs.tag }}
+    
+        steps:
+          - name: checkout code
+            uses: actions/checkout@v4
+            with:
+              fetch-depth: 0
+    
+          - name: Setup JDK
+            uses: actions/setup-java@v4
+            with:
+              distribution: "adopt"
+              java-version: "20"
+              cache: "gradle"
+    
+          - name: Prepare Tag
+            shell: bash
+            id: tag
+            run: |
+              if [[ ${{ github.ref_name }} == v* ]]; then
+                tag="${{ github.ref_name }}"
+                echo "prerelease=false" >> $GITHUB_OUTPUT
+              else
+                tag="$(date +'vdev.%y.%m.%d.%H%M%S')"
+                echo "prerelease=true" >> $GITHUB_OUTPUT
+              fi
+              echo "tag=$tag" >> $GITHUB_OUTPUT
+    
+          - name: Bump version in app.json
+            run: |
+              tag=${{ steps.tag.outputs.tag }}
+              # change version in app.json
+              sed -i "s/ versionName = \".*\"/versionName = \"${tag:1}\"/g" app/build.gradle.kts
+
+          - name: Build Expo
+            run: bun run build:android
+
+          - name: Build Signed APK
+            run: |
+              cd android
+              chmod +x ./gradlew
+              ./gradlew assembleRelease \
+                --build-cache \
+                -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/app/jiotvgo.jks \
+                -Pandroid.injected.signing.store.password="${{ secrets.STORE_PASSWORD }}" \
+                -Pandroid.injected.signing.key.alias="key0" \
+                -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}" \
+                -Pandroid.enableProguardInReleaseBuilds=true
+    
+          - name: Rename APK
+            shell: bash
+            run: |
+              cd android/app/build/outputs/apk/release
+              tag=${{ steps.tag.outputs.tag }}
+              for file in *.apk; do name=$(echo $file | cut -d'-' -f2-3); new_name="jiotv_go-${name%-release*}-$tag.apk"; mv "$file" "$new_name"; done
+    
+          - name: Release APK
+            uses: ncipollo/release-action@v1
+            with:
+              artifacts: app/build/outputs/apk/release/*.apk
+              tag: ${{ steps.tag.outputs.tag }}
+              prerelease: ${{ steps.tag.outputs.prerelease }}
+              allowUpdates: true
+              omitBodyDuringUpdate: true
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+          - name: Sync version
+            if: steps.tag.outputs.prerelease == 'false'
+            continue-on-error: true
+            run: |
+              tag=${{ steps.tag.outputs.tag }}
+              cd $GITHUB_WORKSPACE
+              git checkout main
+              git config --local user.email "github-actions[bot]@users.noreply.github.com"
+              git config --local user.name "github-actions[bot]"
+              sed -i "s/ versionName = \".*\"/versionName = \"${tag:1}\"/g" app/build.gradle.kts
+              git add app/build.gradle.kts
+              git commit -m "chore: bump version to $tag"
+              git push origin main
