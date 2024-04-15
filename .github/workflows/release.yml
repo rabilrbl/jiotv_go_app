@@ -45,9 +45,6 @@ jobs:
               # change version in app.json
               sed -i "s/ versionName = \".*\"/versionName = \"${tag:1}\"/g" app/build.gradle.kts
 
-          - name: Build Expo
-            run: bun run build:android
-
           - name: Build Signed APK
             run: |
               cd android
